@@ -3,7 +3,13 @@
 	<head>
 		<meta charset="UTF-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-		<title>Document</title>
+		<link
+			rel="icon"
+			type="image/png"
+			href="https://s.imgur.com/images/favicon-96x96.png"
+			sizes="96x96"
+		/>
+		<title>Imgur random images generator</title>
 		<style>
 			*:focus {
 				outline: none;
@@ -19,7 +25,7 @@
 				color: aliceblue;
 				position: relative;
 			}
-			form {
+			#header-form {
 				position: relative;
 				display: flex;
 				gap: 20px;
@@ -40,9 +46,15 @@
 				border: 1px solid aliceblue;
 				border-radius: 5px;
 			}
+
 			input[type="range"] {
 				cursor: pointer;
-				scale: 1.2;
+			}
+			#header-input {
+				width: max(150px, 30%);
+			}
+			#aside-input {
+				width: 100%;
 			}
 			button {
 				padding: 5px;
@@ -62,7 +74,7 @@
 				}
 			}
 			@media (max-width: 500px) {
-				form {
+				#header-form {
 					width: 50%;
 				}
 				form div {
@@ -83,14 +95,19 @@
 			}
 			.item {
 				--padding: 20px;
+				--buttons-div-size: 50px;
 				position: relative;
 				display: flex;
-				flex-direction: column;
-				gap: 10px;
+				flex-direction: column-reverse;
 				border: 1px solid #333;
-				padding: min(var(--size) / 15, var(--padding));
 				width: var(--size);
-				height: var(--size);
+				height: var(--size) - var(--buttons-div-size);
+			}
+			.item > div.image-container {
+				position: relative;
+				width: 100%;
+				aspect-ratio: 1 / 1;
+				border: 1px solid #333;
 			}
 			.item img {
 				position: absolute;
@@ -99,6 +116,24 @@
 				width: 100%;
 				height: 100%;
 				object-fit: contain;
+				cursor: pointer;
+			}
+			.item > div.buttons {
+				position: relative;
+				width: 100%;
+				height: var(--buttons-div-size);
+				display: flex;
+				font-size: calc(var(--size) / 15);
+				justify-content: space-evenly;
+				align-items: center;
+			}
+			.download-button {
+				background: #060;
+				color: #a8ffab;
+				font-size: 1em;
+				border: 1px solid #a8ffab;
+				border-radius: 5px;
+				padding: 0.7em 1.7em;
 			}
 			.done {
 				color: #00b300;
@@ -113,163 +148,436 @@
 			aside {
 				position: fixed;
 				top: 10px;
-				right: -200px;
+				right: -250px;
 				display: flex;
+				gap: 10px;
 				flex-direction: column;
 				padding: 10px;
 				background: #023;
 				border-radius: 10px;
-				transition: 0.5s ease-in-out;
+				transition: 0.75s ease-in-out;
 				border: 1px solid antiquewhite;
+			}
+			aside div {
+				display: flex;
+				flex-direction: column;
+				gap: 10px;
 			}
 			aside.active {
 				right: 10px;
 			}
+			aside.always {
+				right: 10px;
+			}
+
+			.popup {
+				position: fixed;
+				inset: 0;
+				background: #000a;
+				display: flex;
+				justify-content: center;
+				align-items: center;
+				opacity: 0;
+				transition: 0.5s ease-in-out;
+			}
+			.popup-wrapper {
+				position: relative;
+				display: flex;
+				justify-content: center;
+				align-items: center;
+				height: 100%;
+				width: 100%;
+				scale: 0;
+			}
+			.popup-wrapper > img {
+				position: absolute;
+				top: 0;
+				right: 0;
+				width: 100%;
+				height: 100%;
+				object-fit: contain;
+			}
+			.popup.active {
+				opacity: 1;
+			}
+			.popup.active > .popup-wrapper {
+				scale: 1;
+			}
+			.id-length {
+				background: #012;
+				color: aliceblue;
+			}
+			.id-length option {
+				background: #234;
+			}
 		</style>
 	</head>
-	<body style="--size: 200px">
+	<body style="--size: 180px">
 		<header>
-			<form>
+			<form id="header-form">
 				<div>
-					<input type="number" placeholder="Number of images" />
+					<input
+						id="header-count"
+						type="number"
+						placeholder="Number of images"
+						oninput="changeAmount(1)"
+					/>
 					<button type="submit">Generate</button>
 				</div>
 				<span class="status">Status: waiting for input</span>
+				<div>
+					<span>Link ID length:</span>
+					<select
+						id="header-id-select"
+						class="id-length"
+						oninput="updateLinkIDLength(1)"
+					>
+						<option value="5">5 (before 2014)</option>
+						<option value="6">6 (after 2014)</option>
+						<option value="7">7 (after 2014)</option>
+					</select>
+				</div>
 				<div>
 					<span>Image size (50px - 600px):</span>
 					<label></label>
 				</div>
 				<input
+					id="header-input"
 					type="range"
 					min="50"
 					max="600"
-					value="200"
-					oninput="changeSize()"
+					value="180"
+					oninput="changeLabelText(1)"
 				/>
+				<div>
+					<span>Always show aside menu: </span>
+					<input type="checkbox" oninput="updateAsideVisibility()" />
+				</div>
 			</form>
 		</header>
 		<div class="wrapper"></div>
 		<aside>
-			<span class="requested">Requested: 0</span>
-			<span class="generated">Generated: 0</span>
-			<span class="skipped">Skipped: 0</span>
-			<span class="status">Skipped: 0</span>
+			<div>
+				<span class="status">Status: waiting for input</span>
+				<span class="current-requested">Requested: 0</span>
+				<span class="current-generated">Generated: 0</span>
+				<span class="current-skipped">Skipped: 0</span>
+			</div>
+			<div>
+				<span class="total-requested">Total requested: 0</span>
+				<span class="total-generated">Total generated: 0</span>
+				<span class="total-skipped">Total skipped: 0</span>
+			</div>
+			<form>
+				<div>
+					<input
+						id="aside-count"
+						type="number"
+						min="0"
+						placeholder="Number of images"
+						oninput="changeAmount(2)"
+					/>
+					<button type="submit">Generate</button>
+				</div>
+			</form>
+			<div>
+				<span>Link ID length:</span>
+				<select
+					id="aside-id-select"
+					class="id-length"
+					oninput="updateLinkIDLength(2)"
+				>
+					<option value="5">5 (before 2014)</option>
+					<option value="6">6 (after 2014)</option>
+					<option value="7">7 (after 2014)</option>
+				</select>
+			</div>
+			<div>
+				<span>Image size (50px - 600px):</span>
+				<label></label>
+			</div>
+			<input
+				id="aside-input"
+				type="range"
+				min="50"
+				max="600"
+				value="180"
+				oninput="changeLabelText(2)"
+			/>
 		</aside>
 		<script>
+			let totalGeneratedCount = 0,
+				totalRequestedCount = 0,
+				totalSkippedCount = 0,
+				requestedCount = 0,
+				size = 180,
+				linkIDLength = 5
+
 			const chars =
 					"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
 				baseURL = "https://i.imgur.com/",
-				form = document.querySelector("form"),
-				input = document.querySelector("input"),
-				wrongInput = document.querySelector(".wrong-input"),
+				forms = document.querySelectorAll("form"),
+				headerCountInput = document.querySelector("#header-count"),
+				asideCountInput = document.querySelector("#aside-count"),
+				headerRangeInput = document.querySelector("#header-input"),
+				asideRangeInput = document.querySelector("#aside-input"),
+				countInputs = document.querySelectorAll("input[type=number]"),
+				linkIDLengthSelectors = document.querySelectorAll(".id-length"),
+				headerLinkIDLengthSelect =
+					document.querySelector("#header-id-select"),
+				asideLinkIDLengthSelect =
+					document.querySelector("#aside-id-select"),
 				wrapper = document.querySelector(".wrapper"),
-				status = document.querySelectorAll(".status"),
-				range = document.querySelector("input[type=range]"),
-				label = document.querySelector("label"),
-				requested = document.querySelector(".requested"),
-				generated = document.querySelector(".generated"),
-				skipped = document.querySelector(".skipped"),
+				statuses = document.querySelectorAll(".status"),
+				ranges = document.querySelectorAll("input[type=range]"),
+				labels = document.querySelectorAll("label"),
+				currentRequested = document.querySelector(".current-requested"),
+				currenrGenerated = document.querySelector(".current-generated"),
+				currentSkipped = document.querySelector(".current-skipped"),
+				totalRequested = document.querySelector(".total-requested"),
+				totalGenerated = document.querySelector(".total-generated"),
+				totalSkipped = document.querySelector(".total-skipped"),
 				aside = document.querySelector("aside"),
-				generateID = () =>
+				alwaysShowAsideMenu = document.querySelector(
+					"input[type=checkbox]"
+				),
+				generateID = l =>
 					Array.from(
-						Array(5),
+						Array(l),
 						() => chars[Math.floor(Math.random() * chars.length)]
 					).join(""),
-				generateURL = () => baseURL + generateID() + ".jpg",
-				createImage = () => {
-					const img = new Image()
+				generateURL = l => baseURL + generateID(l) + ".jpg",
+				createImage = l => {
+					const img = new Image(),
+						url = generateURL(l)
 					img.onload = () => {
 						if (img.width !== 168 && img.height !== 81) {
-							const div = createBox(),
-								a = document.createElement("a")
+							const div = createBox(url),
+								imageContainer = document.createElement("div")
 
-							a.appendChild(img)
-							a.href = img.src
-							a.target = "_blank"
-							div.appendChild(a)
+							imageContainer.classList.add("image-container")
+							imageContainer.appendChild(img)
+							div.appendChild(imageContainer)
+
+							img.addEventListener("click", () =>
+								showImagePreview(img)
+							)
+
 							wrapper.appendChild(div)
 						}
 					}
-					img.src = generateURL()
+					img.src = url
 				},
-				createBox = () => {
-					const div = document.createElement("div")
+				createBox = link => {
+					const div = document.createElement("div"),
+						buttons = document.createElement("div"),
+						download = document.createElement("button")
+
+					download.innerText = "Download"
+					download.classList.add("download-button")
+					download.addEventListener("click", () => {
+						const a = document.createElement("a")
+						a.href = link
+						a.style.display = "none"
+						a.download = `imgur_image_${link.split("/").pop()}`
+						fetch(link)
+							.then(response => response.blob())
+							.then(blob => {
+								const url = window.URL.createObjectURL(blob)
+								a.href = url
+								document.body.appendChild(a)
+								a.click()
+								a.remove()
+								window.URL.revokeObjectURL(url)
+							})
+							.catch(console.error)
+					})
+					buttons.classList.add("buttons")
+					buttons.appendChild(download)
+					div.appendChild(buttons)
+
 					div.classList.add("item")
 					return div
 				},
 				sleep = ms => new Promise(resolve => setTimeout(resolve, ms)),
-				changeSize = () => {
-					document.body.style.setProperty(
-						"--size",
-						range.value + "px"
-					)
-					label.innerText = range.value + "px"
+				changeLabelText = o => {
+					if (o == 1) {
+						size = +headerRangeInput.value
+						asideRangeInput.value = size
+					} else if (o == 2) {
+						size = +asideRangeInput.value
+						headerRangeInput.value = size
+					}
+
+					document.body.style.setProperty("--size", size + "px")
+					labels.forEach(e => {
+						e.innerText = size + "px"
+					})
 				},
 				updateStatus = type => {
 					if (type == "generating") {
-						status.forEach(e => {
+						statuses.forEach(e => {
 							e.classList.add("generating")
 							e.classList.remove("done")
 							e.innerText = "Status: generating..."
 						})
 					} else if (type == "done") {
-						status.forEach(e => {
+						statuses.forEach(e => {
 							e.classList.remove("generating")
 							e.classList.add("done")
 							e.innerText = "Status: done"
 						})
 					}
+				},
+				changeAmount = o => {
+					if (o == 1)
+						requestedCount =
+							+headerCountInput.value < 0
+								? 0
+								: +headerCountInput.value
+					else if (o == 2)
+						requestedCount =
+							+asideCountInput.value < 0
+								? 0
+								: +asideCountInput.value
+
+					countInputs.forEach(e => {
+						e.value = requestedCount
+					})
+				},
+				showImagePreview = el => {
+					const popup = document.createElement("div"),
+						popupWrapper = document.createElement("div")
+
+					popupWrapper.classList.add("popup-wrapper")
+					popup.classList.add("popup")
+					popup.addEventListener("click", () => popup.remove())
+					popupWrapper.appendChild(el.cloneNode(true))
+
+					popup.appendChild(popupWrapper)
+					document.body.appendChild(popup)
+
+					setTimeout(() => popup.classList.add("active"), 100)
+				},
+				updateCurrentRun = (req, gen, skip) => {
+					currentRequested.innerText = `Requested: ${req}`
+					currenrGenerated.innerText = `Generated: ${gen}`
+					currentSkipped.innerText = `Skipped: ${skip}`
+				},
+				updateTotalRun = (req, gen, skip) => {
+					totalRequested.innerText = `Total requested: ${
+						totalRequestedCount + req
+					}`
+					totalGenerated.innerText = `Total generated: ${
+						totalGeneratedCount + gen
+					}`
+					totalSkipped.innerText = `Total skipped: ${
+						totalSkippedCount + skip
+					}`
+				},
+				updateBothRuns = (req, gen, skip) => {
+					updateCurrentRun(req, gen, skip)
+					updateTotalRun(req, gen, skip)
+				},
+				updateLinkIDLength = o => {
+					if (o == 1) {
+						linkIDLength = +headerLinkIDLengthSelect.value
+					} else if (o == 2) {
+						linkIDLength = +asideLinkIDLengthSelect.value
+					}
+					linkIDLengthSelectors.forEach(e => (e.value = linkIDLength))
+				},
+				updateAsideVisibility = () => {
+					if (alwaysShowAsideMenu.checked)
+						aside.classList.add("always")
+					else aside.classList.remove("always")
 				}
 
-			form.addEventListener("submit", async e => {
-				e.preventDefault()
+			forms.forEach(e => {
+				e.addEventListener("submit", async e => {
+					e.preventDefault()
 
-				const value = +input.value,
-					initialLength = wrapper.childNodes.length
-				let length = initialLength,
-					i = 0
+					const initialLength = wrapper.childNodes.length,
+						requiredLength = requestedCount + initialLength,
+						checkForNewImages = () => {
+							if (wrapper.childNodes.length == length) {
+								skipped++
+							}
+						}
 
-				updateStatus("generating")
-				requested.innerText = `Requested: ${value}`
+					let length = initialLength,
+						skipped = 0
 
-				while (length < initialLength + value) {
-					createImage()
-					await sleep(75)
-					if (wrapper.childNodes.length > length) {
-						length++
-						generated.innerText = `Generated: ${
-							wrapper.childNodes.length - initialLength
-						}`
-						skipped.innerText = `Skipped: ${i}`
-					} else console.log("image skipped"), i++
-				}
+					updateStatus("generating")
 
-				await sleep(400)
+					const wrapperObserver = new MutationObserver(() => {
+						if (wrapper.childNodes.length > length) {
+							updateBothRuns(requestedCount, length, skipped)
+							length++
+						}
+					})
 
-				updateStatus("done")
+					wrapperObserver.observe(wrapper, {
+						childList: true,
+						subtree: true,
+					})
 
-				generated.innerText = `Generated: ${
-					wrapper.childNodes.length - initialLength
-				}`
+					while (length < requiredLength) {
+						createImage(linkIDLength)
+						await sleep(50)
+						checkForNewImages()
+						updateBothRuns(requestedCount, length, skipped)
+					}
+					wrapperObserver.disconnect()
 
-				console.log(
-					`Requested: ${value} image(s), generated: ${
-						wrapper.childNodes.length - initialLength
-					} image(s), skipped: ${i} image(s)`
-				)
+					await sleep(400)
+
+					updateStatus("done")
+
+					length = wrapper.childNodes.length - initialLength
+
+					updateBothRuns(requestedCount, length, skipped)
+
+					totalRequestedCount += requestedCount
+					totalGeneratedCount += length
+					totalSkippedCount += skipped
+
+					console.info("Done. Statistics:")
+					console.table([
+						{
+							Run: "Last run",
+							Requested: requestedCount,
+							Generated: length,
+							Skipped: skipped,
+						},
+						{
+							Run: "Total",
+							Requested: totalRequestedCount,
+							Generated: totalGeneratedCount,
+							Skipped: totalSkippedCount,
+						},
+					])
+				})
 			})
 
-			const observer = new IntersectionObserver(entries => {
+			document.addEventListener("keyup", e => {
+				if (e.key == "Escape" || e.key == "Enter") {
+					const popup = document.querySelector(".popup")
+					if (popup) popup.remove()
+				}
+			})
+
+			const headerObserver = new IntersectionObserver(entries => {
 				entries.forEach(entry => {
 					if (entry.isIntersecting) aside.classList.remove("active")
 					else aside.classList.add("active")
 				})
 			})
 
-			observer.observe(form)
+			headerObserver.observe(document.querySelector("header"))
 
-			changeSize()
-			input.focus()
+			changeLabelText()
+			headerRangeInput.focus()
 		</script>
 	</body>
 </html>
