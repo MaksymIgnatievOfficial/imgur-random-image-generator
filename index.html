@@ -153,6 +153,8 @@
 				gap: 10px;
 				flex-direction: column;
 				padding: 10px;
+				width: 150px;
+				font-size: 12px;
 				background: #023;
 				border-radius: 10px;
 				transition: 0.75s ease-in-out;
@@ -162,6 +164,12 @@
 				display: flex;
 				flex-direction: column;
 				gap: 10px;
+			}
+			aside .container.hidden {
+				display: none;
+			}
+			aside input[type="number"] {
+				font-size: 1em;
 			}
 			aside.active {
 				right: 10px;
@@ -257,53 +265,56 @@
 		</header>
 		<div class="wrapper"></div>
 		<aside>
-			<div>
-				<span class="status">Status: waiting for input</span>
-				<span class="current-requested">Requested: 0</span>
-				<span class="current-generated">Generated: 0</span>
-				<span class="current-skipped">Skipped: 0</span>
-			</div>
-			<div>
-				<span class="total-requested">Total requested: 0</span>
-				<span class="total-generated">Total generated: 0</span>
-				<span class="total-skipped">Total skipped: 0</span>
-			</div>
-			<form>
+			<span class="status">Status: waiting for input</span>
+			<div class="container hidden">
 				<div>
-					<input
-						id="aside-count"
-						type="number"
-						min="0"
-						placeholder="Number of images"
-						oninput="changeAmount(2)"
-					/>
-					<button type="submit">Generate</button>
+					<span class="current-requested">Requested: 0</span>
+					<span class="current-generated">Generated: 0</span>
+					<span class="current-skipped">Skipped: 0</span>
 				</div>
-			</form>
-			<div>
-				<span>Link ID length:</span>
-				<select
-					id="aside-id-select"
-					class="id-length"
-					oninput="updateLinkIDLength(2)"
-				>
-					<option value="5">5 (before 2014)</option>
-					<option value="6">6 (after 2014)</option>
-					<option value="7">7 (after 2014)</option>
-				</select>
+				<div>
+					<span class="total-requested">Total requested: 0</span>
+					<span class="total-generated">Total generated: 0</span>
+					<span class="total-skipped">Total skipped: 0</span>
+				</div>
+				<form>
+					<div>
+						<input
+							id="aside-count"
+							type="number"
+							min="0"
+							placeholder="Number of images"
+							oninput="changeAmount(2)"
+						/>
+						<button type="submit">Generate</button>
+					</div>
+				</form>
+				<div>
+					<span>Link ID length:</span>
+					<select
+						id="aside-id-select"
+						class="id-length"
+						oninput="updateLinkIDLength(2)"
+					>
+						<option value="5">5 (before 2014)</option>
+						<option value="6">6 (after 2014)</option>
+						<option value="7">7 (after 2014)</option>
+					</select>
+				</div>
+				<div>
+					<span>Image size (50px - 600px):</span>
+					<label></label>
+				</div>
+				<input
+					id="aside-input"
+					type="range"
+					min="50"
+					max="600"
+					value="180"
+					oninput="changeLabelText(2)"
+				/>
 			</div>
-			<div>
-				<span>Image size (50px - 600px):</span>
-				<label></label>
-			</div>
-			<input
-				id="aside-input"
-				type="range"
-				min="50"
-				max="600"
-				value="180"
-				oninput="changeLabelText(2)"
-			/>
+			<button id="show-aside-container">▼</button>
 		</aside>
 		<script>
 			let totalGeneratedCount = 0,
@@ -338,6 +349,10 @@
 				totalGenerated = document.querySelector(".total-generated"),
 				totalSkipped = document.querySelector(".total-skipped"),
 				aside = document.querySelector("aside"),
+				showAsideContainer = document.querySelector(
+					"#show-aside-container"
+				),
+				asideContainer = document.querySelector("aside .container"),
 				alwaysShowAsideMenu = document.querySelector(
 					"input[type=checkbox]"
 				),
@@ -564,6 +579,17 @@
 				if (e.key == "Escape" || e.key == "Enter") {
 					const popup = document.querySelector(".popup")
 					if (popup) popup.remove()
+				}
+			})
+
+			showAsideContainer.addEventListener("click", () => {
+				const is = asideContainer.classList.contains("hidden")
+				if (is) {
+					asideContainer.classList.remove("hidden")
+					showAsideContainer.innerText = "▲"
+				} else {
+					asideContainer.classList.add("hidden")
+					showAsideContainer.innerText = "▼"
 				}
 			})
 
