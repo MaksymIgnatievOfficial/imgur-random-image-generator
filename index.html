@@ -211,11 +211,11 @@
 			.popup.active > .popup-wrapper {
 				scale: 1;
 			}
-			.id-length {
+			.id-generated {
 				background: #012;
 				color: aliceblue;
 			}
-			.id-length option {
+			.id-generated option {
 				background: #234;
 			}
 		</style>
@@ -234,10 +234,10 @@
 				</div>
 				<span class="status">Status: waiting for input</span>
 				<div>
-					<span>Link ID length:</span>
+					<span>Link ID generated:</span>
 					<select
 						id="header-id-select"
-						class="id-length"
+						class="id-generated"
 						oninput="updateLinkIDLength(1)"
 					>
 						<option value="5">5 (before 2014)</option>
@@ -290,10 +290,10 @@
 					</div>
 				</form>
 				<div>
-					<span>Link ID length:</span>
+					<span>Link ID generated:</span>
 					<select
 						id="aside-id-select"
-						class="id-length"
+						class="id-generated"
 						oninput="updateLinkIDLength(2)"
 					>
 						<option value="5">5 (before 2014)</option>
@@ -333,7 +333,8 @@
 				headerRangeInput = document.querySelector("#header-input"),
 				asideRangeInput = document.querySelector("#aside-input"),
 				countInputs = document.querySelectorAll("input[type=number]"),
-				linkIDLengthSelectors = document.querySelectorAll(".id-length"),
+				linkIDLengthSelectors =
+					document.querySelectorAll(".id-generated"),
 				headerLinkIDLengthSelect =
 					document.querySelector("#header-id-select"),
 				asideLinkIDLengthSelect =
@@ -365,6 +366,10 @@
 				createImage = l => {
 					const img = new Image(),
 						url = generateURL(l)
+
+					img.setAttribute("crossorigin", "anonymous")
+					img.setAttribute("referrerpolicy", "no-referrer")
+
 					img.onload = () => {
 						if (img.width !== 168 && img.height !== 81) {
 							const div = createBox(url),
@@ -515,20 +520,22 @@
 					const initialLength = wrapper.childNodes.length,
 						requiredLength = requestedCount + initialLength,
 						checkForNewImages = () => {
-							if (wrapper.childNodes.length == length) {
+							if (wrapper.childNodes.length == generated) {
 								skipped++
 							}
 						}
-
-					let length = initialLength,
-						skipped = 0
+					let skipped = 0,
+						generated = 0
 
 					updateStatus("generating")
 
 					const wrapperObserver = new MutationObserver(() => {
-						if (wrapper.childNodes.length > length) {
-							updateBothRuns(requestedCount, length, skipped)
-							length++
+						if (
+							wrapper.childNodes.length >
+							initialLength + generated
+						) {
+							updateBothRuns(requestedCount, generated, skipped)
+							generated++
 						}
 					})
 
@@ -537,11 +544,11 @@
 						subtree: true,
 					})
 
-					while (length < requiredLength) {
+					while (generated < requestedCount) {
 						createImage(linkIDLength)
 						await sleep(50)
 						checkForNewImages()
-						updateBothRuns(requestedCount, length, skipped)
+						updateBothRuns(requestedCount, generated, skipped)
 					}
 					wrapperObserver.disconnect()
 
@@ -549,20 +556,20 @@
 
 					updateStatus("done")
 
-					length = wrapper.childNodes.length - initialLength
+					generated = wrapper.childNodes.length - initialLength
 
-					updateBothRuns(requestedCount, length, skipped)
+					updateBothRuns(requestedCount, generated, skipped)
 
 					totalRequestedCount += requestedCount
-					totalGeneratedCount += length
+					totalGeneratedCount += generated
 					totalSkippedCount += skipped
 
 					console.info("Done. Statistics:")
 					console.table([
 						{
-							Run: "Last run",
+							Run: "Last",
 							Requested: requestedCount,
-							Generated: length,
+							Generated: generated,
 							Skipped: skipped,
 						},
 						{
