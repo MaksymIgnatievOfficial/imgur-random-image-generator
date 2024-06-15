@@ -19,11 +19,15 @@
 				padding: 0;
 				box-sizing: border-box;
 			}
-
 			body {
 				background: #001;
 				color: aliceblue;
 				position: relative;
+			}
+			.flex-center {
+				display: flex;
+				justify-content: center;
+				align-items: center;
 			}
 			#header-form {
 				position: relative;
@@ -55,6 +59,9 @@
 			}
 			#aside-input {
 				width: 100%;
+			}
+			#show-aside-menu {
+				align-items: start;
 			}
 			button {
 				padding: 5px;
@@ -234,7 +241,7 @@
 				</div>
 				<span class="status">Status: waiting for input</span>
 				<div>
-					<span>Link ID generated:</span>
+					<span>Link ID length:</span>
 					<select
 						id="header-id-select"
 						class="id-generated"
@@ -257,10 +264,11 @@
 					value="180"
 					oninput="changeLabelText(1)"
 				/>
-				<div>
-					<span>Always show aside menu: </span>
-					<input type="checkbox" oninput="updateAsideVisibility()" />
-				</div>
+
+				<span class="flex-center"
+					>Always show aside menu:&nbsp;&nbsp;
+					<input type="checkbox" oninput="updateAsideVisibility()"
+				/></span>
 			</form>
 		</header>
 		<div class="wrapper"></div>
@@ -290,7 +298,7 @@
 					</div>
 				</form>
 				<div>
-					<span>Link ID generated:</span>
+					<span>Link ID length:</span>
 					<select
 						id="aside-id-select"
 						class="id-generated"
@@ -363,7 +371,8 @@
 						() => chars[Math.floor(Math.random() * chars.length)]
 					).join(""),
 				generateURL = l => baseURL + generateID(l) + ".jpg",
-				createImage = l => {
+				createImage = (l, gen) => {
+					if (gen >= requestedCount) return
 					const img = new Image(),
 						url = generateURL(l)
 
@@ -545,7 +554,7 @@
 					})
 
 					while (generated < requestedCount) {
-						createImage(linkIDLength)
+						createImage(linkIDLength, generated)
 						await sleep(50)
 						checkForNewImages()
 						updateBothRuns(requestedCount, generated, skipped)
